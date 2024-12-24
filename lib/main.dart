@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:simple_to_do/task.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,7 +11,7 @@ void main() async {
             apiKey: "AIzaSyCeeVEMcq1f5PTSWckKfVIShOJCTPwtFKQ",
             authDomain: "to-do-simple-b548e.firebaseapp.com",
             projectId: "to-do-simple-b548e",
-            storageBucket: "to-do-simple-b548e.firebasestorage.app",
+            storageBucket: "to-do-simple-b548e.appspot.com",
             messagingSenderId: "166111396965",
             appId: "1:166111396965:web:47a9cf5978ea7bd957f28c"));
   } else {
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Flutter To Do List'),
     );
   }
 }
@@ -48,11 +48,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<ToDoTask> tasks = [
-    ToDoTask(title: "Study Math", desc: "Chapters 2,3"),
-    ToDoTask(title: "Exercise", desc: "Go for a run"),
-    ToDoTask(title: "Study Science", desc: "Chapter 5")
-  ];
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   // Controllers for the input fields
   final TextEditingController titleController = TextEditingController();
@@ -64,28 +60,42 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         centerTitle: true,
-        title: Text(
+        title: const Text(
           "To Do List",
           style: TextStyle(
             color: Colors.white,
           ),
         ),
       ),
-      body: ListView.builder(
-        itemCount: tasks.length,
-        itemBuilder: (context, index) {
-          final task = tasks[index];
-          return ListTile(
-            title: Text(task.title),
-            subtitle: Text(task.desc),
-            trailing: Checkbox(
-              value: task.isComplete,
-              onChanged: (bool? value) {
-                setState(() {
-                  task.toggleComplete();
-                });
-              },
-            ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: firestore.collection('tasks').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No tasks available."));
+          }
+
+          final tasks = snapshot.data!.docs;
+          return ListView.builder(
+            itemCount: tasks.length,
+            itemBuilder: (context, index) {
+              final task = tasks[index];
+              return ListTile(
+                title: Text(task['title']),
+                subtitle: Text(task['description']),
+                trailing: Checkbox(
+                  value: task['isComplete'],
+                  onChanged: (bool? value) {
+                    firestore
+                        .collection('tasks')
+                        .doc(task.id)
+                        .update({'isComplete': value});
+                  },
+                ),
+              );
+            },
           );
         },
       ),
@@ -131,14 +141,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             ElevatedButton(
               onPressed: () {
-                // Add the new task to the list
+                // Add the new task to Firestore
                 if (titleController.text.isNotEmpty &&
                     descController.text.isNotEmpty) {
-                  setState(() {
-                    tasks.add(ToDoTask(
-                      title: titleController.text,
-                      desc: descController.text,
-                    ));
+                  firestore.collection('tasks').add({
+                    'title': titleController.text,
+                    'description': descController.text,
+                    'isComplete': false,
                   });
                   titleController.clear();
                   descController.clear();
