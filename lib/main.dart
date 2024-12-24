@@ -30,8 +30,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'To Do List',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        colorScheme: ColorScheme.fromSwatch()
+            .copyWith(primary: const Color.fromARGB(255, 109, 62, 14)),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(fontSize: 18, color: Colors.black87),
+          headlineMedium: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+        ),
       ),
       home: const MyHomePage(title: 'Flutter To Do List'),
     );
@@ -58,7 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Color.fromARGB(255, 109, 62, 14),
         centerTitle: true,
         title: const Text(
           "To Do List",
@@ -74,25 +79,38 @@ class _MyHomePageState extends State<MyHomePage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No tasks available."));
+            return const Center(
+                child: Text("No tasks available.",
+                    style: TextStyle(fontSize: 18, color: Colors.grey)));
           }
-
+//padding: const EdgeInsets.all(8.0),
           final tasks = snapshot.data!.docs;
           return ListView.builder(
             itemCount: tasks.length,
             itemBuilder: (context, index) {
               final task = tasks[index];
-              return ListTile(
-                title: Text(task['title']),
-                subtitle: Text(task['description']),
-                trailing: Checkbox(
-                  value: task['isComplete'],
-                  onChanged: (bool? value) {
-                    firestore
-                        .collection('tasks')
-                        .doc(task.id)
-                        .update({'isComplete': value});
-                  },
+              final isComplete = task['isComplete'] as bool;
+
+              return Card(
+                color: isComplete ? Colors.green[100] : Colors.white,
+                child: ListTile(
+                  title: Text(
+                    task['title'],
+                    style: TextStyle(
+                      decoration:
+                          isComplete ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  subtitle: Text(task['description']),
+                  trailing: Checkbox(
+                    value: isComplete,
+                    onChanged: (bool? value) {
+                      firestore
+                          .collection('tasks')
+                          .doc(task.id)
+                          .update({'isComplete': value});
+                    },
+                  ),
                 ),
               );
             },
@@ -100,7 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
+        backgroundColor: Color.fromARGB(255, 109, 62, 14),
         onPressed: () => _showAddTaskDialog(context),
         tooltip: 'Add Task',
         child: const Icon(
@@ -117,18 +135,28 @@ class _MyHomePageState extends State<MyHomePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: const Text("Add New Task"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(labelText: "Task Title"),
+                decoration: InputDecoration(
+                  labelText: "Task Title",
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
               ),
+              const SizedBox(height: 10),
               TextField(
                 controller: descController,
-                decoration:
-                    const InputDecoration(labelText: "Task Description"),
+                decoration: InputDecoration(
+                  labelText: "Task Description",
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
               ),
             ],
           ),
@@ -159,7 +187,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   );
                 }
               },
-              child: const Text("Add Task"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 109, 62, 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text(
+                "Add Task",
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
